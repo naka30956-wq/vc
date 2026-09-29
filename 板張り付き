@@ -1,0 +1,139 @@
+local P=game.Players.LocalPlayer
+local U=game:GetService("UserInputService")
+workspace.CurrentCamera.FieldOfView=120
+
+local G=Instance.new("ScreenGui",P:WaitForChild("PlayerGui"))
+G.Name="Guratan"
+G.ResetOnSpawn=false
+
+local F=Instance.new("Frame",G)
+F.Size=UDim2.fromOffset(170,55)
+F.Position=UDim2.new(1,-190,1,-100)
+F.BackgroundColor3=Color3.fromRGB(90,40,150)
+Instance.new("UICorner",F).CornerRadius=UDim.new(0,10)
+
+local T=Instance.new("TextLabel",F)
+T.Size=UDim2.fromOffset(80,18)
+T.Position=UDim2.fromOffset(5,-18)
+T.Text="ぐらたん"
+T.TextSize=13
+T.TextColor3=Color3.fromRGB(210,170,255)
+T.BackgroundTransparency=1
+
+local M=Instance.new("TextButton",F)
+M.Size=UDim2.fromOffset(35,55)
+M.Text="☷"
+M.TextSize=20
+M.TextColor3=Color3.new(1,1,1)
+M.BackgroundTransparency=1
+
+local B=Instance.new("TextButton",F)
+B.Size=UDim2.fromOffset(125,38)
+B.Position=UDim2.fromOffset(40,8)
+B.Text="STICK: OFF"
+B.TextColor3=Color3.new(1,1,1)
+B.BackgroundColor3=Color3.fromRGB(115,55,185)
+B.Font=Enum.Font.GothamBold
+B.TextSize=15
+Instance.new("UICorner",B).CornerRadius=UDim.new(0,8)
+
+local on,ap,a,x=false,nil,nil,nil
+
+local function off()
+	for _,v in pairs({ap,a,x}) do
+		if v then v:Destroy() end
+	end
+	ap,a,x=nil,nil,nil
+end
+
+local function toggle()
+	on=not on
+	off()
+
+	if on then
+		local c=P.Character
+		local h=c and c:FindFirstChild("HumanoidRootPart")
+
+		if h then
+			local q=RaycastParams.new()
+			q.FilterType=Enum.RaycastFilterType.Exclude
+			q.FilterDescendantsInstances={c}
+
+			local r=workspace:Raycast(
+				h.Position,Vector3.new(0,-12,0),q
+			)
+
+			if r and r.Instance:IsA("BasePart") then
+				a=Instance.new("Attachment",h)
+				x=Instance.new("Attachment",r.Instance)
+				x.Position=Vector3.new(0,3.5,0)
+
+				ap=Instance.new("AlignPosition",h)
+				ap.Attachment0=a
+				ap.Attachment1=x
+				ap.MaxForce=50000
+				ap.MaxVelocity=100
+				ap.Responsiveness=35
+				ap.RigidityEnabled=false
+			else
+				on=false
+			end
+		else
+			on=false
+		end
+	end
+
+	B.Text="STICK: "..(on and "ON" or "OFF")
+end
+
+-- ボタンで切り替え
+B.Activated:Connect(toggle)
+
+-- PC：Qキーで切り替え
+U.InputBegan:Connect(function(i,processed)
+	if not processed and i.KeyCode==Enum.KeyCode.Q then
+		toggle()
+	end
+end)
+
+-- UIドラッグ：☷を動かす
+local drag,ds,sp=false,nil,nil
+
+M.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch
+	or i.UserInputType==Enum.UserInputType.MouseButton1 then
+		drag=true
+		ds=i.Position
+		sp=F.Position
+	end
+end)
+
+U.InputChanged:Connect(function(i)
+	if drag and (
+		i.UserInputType==Enum.UserInputType.Touch
+		or i.UserInputType==Enum.UserInputType.MouseMovement
+	) then
+		local d=i.Position-ds
+		F.Position=UDim2.new(
+			sp.X.Scale,sp.X.Offset+d.X,
+			sp.Y.Scale,sp.Y.Offset+d.Y
+		)
+	end
+end)
+
+U.InputEnded:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.Touch
+	or i.UserInputType==Enum.UserInputType.MouseButton1 then
+		drag=false
+	end
+end)
+
+P.CharacterAdded:Connect(function()
+	on=false
+	off()
+	B.Text="STICK: OFF"
+	task.wait(1)
+	if workspace.CurrentCamera then
+		workspace.CurrentCamera.FieldOfView=120
+	end
+end)
